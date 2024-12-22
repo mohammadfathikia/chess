@@ -3,95 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chess Game</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+    <title>Simple 3D Chess</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            margin: 0;
+            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            margin: 0;
-            background-color: #f4f4f4;
-        }
-        #board {
-            width: 400px;
-        }
-        .info {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 18px;
+            background-color: #2c3e50;
         }
     </style>
 </head>
 <body>
-    <div>
-        <div id="board"></div>
-        <div class="info">
-            <p id="status">Your turn!</p>
-        </div>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
     <script>
-        const boardElement = document.getElementById("board");
-        const statusElement = document.getElementById("status");
+        // Scene, camera, and renderer
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-        // Initialize Chess.js
-        const game = new Chess();
-
-        // Initialize Chessboard.js
-        const board = Chessboard(boardElement, {
-            draggable: true,
-            position: "start",
-            onDrop: handleMove
-        });
-
-        // Handle player's move
-        function handleMove(source, target) {
-            const move = game.move({
-                from: source,
-                to: target,
-                promotion: "q" // Automatically promote pawns to queens
-            });
-
-            if (move === null) {
-                return "snapback"; // Invalid move
-            }
-
-            updateStatus();
-
-            // Let the computer play after a short delay
-            setTimeout(makeComputerMove, 500);
-        }
-
-        // Make a move for the computer
-        function makeComputerMove() {
-            const possibleMoves = game.moves();
-
-            if (possibleMoves.length === 0) {
-                updateStatus();
-                return;
-            }
-
-            const randomMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-            game.move(randomMove);
-            board.position(game.fen());
-            updateStatus();
-        }
-
-        // Update the status of the game
-        function updateStatus() {
-            if (game.in_checkmate()) {
-                statusElement.textContent = "Checkmate! Game over.";
-            } else if (game.in_draw()) {
-                statusElement.textContent = "It's a draw!";
-            } else {
-                statusElement.textContent = game.turn() === "w" ? "Your turn!" : "Computer's turn!";
+        // Create chessboard
+        const boardSize = 8;
+        const tileSize = 1;
+        for (let x = 0; x < boardSize; x++) {
+            for (let z = 0; z < boardSize; z++) {
+                const color = (x + z) % 2 === 0 ? 0xffffff : 0x000000;
+                const geometry = new THREE.BoxGeometry(tileSize, 0.1, tileSize);
+                const material = new THREE.MeshBasicMaterial({ color });
+                const tile = new THREE.Mesh(geometry, material);
+                tile.position.set(x - boardSize / 2, 0, z - boardSize / 2);
+                scene.add(tile);
             }
         }
+
+        // Add simple chess pieces (pawns)
+        const createPawn = (color) => {
+            const geometry = new THREE.CylinderGeometry(0.3, 0.5, 1, 32);
+            const material = new THREE.MeshPhongMaterial({ color });
+            const pawn = new THREE.Mesh(geometry, material);
+            return pawn;
+        };
+
+        const pieces = [];
+        for (let i = 0; i < boardSize; i++) {
+            // Add white pawns
+            const whitePawn = createPawn(0xffffff);
+            whitePawn.position.set(i - boardSize / 2 + 0.5, 0.5, -boardSize / 2 + 1.5);
+            scene.add(whitePawn);
+            pieces.push(whitePawn);
+
+            // Add black pawns
+            const blackPawn = createPawn(0x000000);
+            blackPawn.position.set(i - boardSize / 2 + 0.5, 0.5, boardSize / 2 - 1.5);
+            scene.add(blackPawn);
+            pieces.push(blackPawn);
+        }
+
+        // Add lighting
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(5, 10, 5);
+        scene.add(light);
+
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+
+        // Set camera position
+        camera.position.set(4, 6, 8);
+        camera.lookAt(0, 0, 0);
+
+        // Render loop
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
     </script>
 </body>
 </html>
