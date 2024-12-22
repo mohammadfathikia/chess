@@ -3,84 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple 3D Chess</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <title>Tic Tac Toe</title>
     <style>
         body {
-            margin: 0;
-            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #2c3e50;
+            margin: 0;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 10px;
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #ffffff;
+            border: 2px solid #cccccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .cell:hover {
+            background-color: #f9f9f9;
+        }
+
+        .cell.taken {
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 20px;
+            font-size: 1.5rem;
+            color: #333;
+        }
+
+        .restart {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .restart:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
-    <script>
-        // Scene, camera, and renderer
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+    <div class="game-container">
+        <div class="board" id="board"></div>
+        <div class="status" id="status">Your Turn!</div>
+        <button class="restart" id="restart">Restart</button>
+    </div>
 
-        // Create chessboard
-        const boardSize = 8;
-        const tileSize = 1;
-        for (let x = 0; x < boardSize; x++) {
-            for (let z = 0; z < boardSize; z++) {
-                const color = (x + z) % 2 === 0 ? 0xffffff : 0x000000;
-                const geometry = new THREE.BoxGeometry(tileSize, 0.1, tileSize);
-                const material = new THREE.MeshBasicMaterial({ color });
-                const tile = new THREE.Mesh(geometry, material);
-                tile.position.set(x - boardSize / 2, 0, z - boardSize / 2);
-                scene.add(tile);
+    <script>
+        const board = document.getElementById('board');
+        const statusText = document.getElementById('status');
+        const restartButton = document.getElementById('restart');
+        let cells = [];
+        let currentPlayer = 'X';
+        let gameActive = true;
+
+        // Winning combinations
+        const winningCombinations = [
+            [0, 1, 2],
+            [3, 4, 5],
+            [6, 7, 8],
+            [0, 3, 6],
+            [1, 4, 7],
+            [2, 5, 8],
+            [0, 4, 8],
+            [2, 4, 6]
+        ];
+
+        // Initialize the game
+        function initializeGame() {
+            board.innerHTML = '';
+            cells = [];
+            gameActive = true;
+            currentPlayer = 'X';
+            statusText.textContent = "Your Turn!";
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.addEventListener('click', () => handleCellClick(i));
+                board.appendChild(cell);
+                cells.push(cell);
             }
         }
 
-        // Add simple chess pieces (pawns)
-        const createPawn = (color) => {
-            const geometry = new THREE.CylinderGeometry(0.3, 0.5, 1, 32);
-            const material = new THREE.MeshPhongMaterial({ color });
-            const pawn = new THREE.Mesh(geometry, material);
-            return pawn;
-        };
+        // Handle cell click
+        function handleCellClick(index) {
+            if (!gameActive || cells[index].textContent !== '') return;
 
-        const pieces = [];
-        for (let i = 0; i < boardSize; i++) {
-            // Add white pawns
-            const whitePawn = createPawn(0xffffff);
-            whitePawn.position.set(i - boardSize / 2 + 0.5, 0.5, -boardSize / 2 + 1.5);
-            scene.add(whitePawn);
-            pieces.push(whitePawn);
+            cells[index].textContent = currentPlayer;
+            cells[index].classList.add('taken');
 
-            // Add black pawns
-            const blackPawn = createPawn(0x000000);
-            blackPawn.position.set(i - boardSize / 2 + 0.5, 0.5, boardSize / 2 - 1.5);
-            scene.add(blackPawn);
-            pieces.push(blackPawn);
+            if (checkWin()) {
+                statusText.textContent = `${currentPlayer} Wins!`;
+                gameActive = false;
+                return;
+            }
+
+            if (cells.every(cell => cell.textContent !== '')) {
+                statusText.textContent = "It's a Draw!";
+                gameActive = false;
+                return;
+            }
+
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            statusText.textContent = `${currentPlayer}'s Turn!`;
         }
 
-        // Add lighting
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(5, 10, 5);
-        scene.add(light);
-
-        const ambientLight = new THREE.AmbientLight(0x404040);
-        scene.add(ambientLight);
-
-        // Set camera position
-        camera.position.set(4, 6, 8);
-        camera.lookAt(0, 0, 0);
-
-        // Render loop
-        function animate() {
-            requestAnimationFrame(animate);
-            renderer.render(scene, camera);
+        // Check for a win
+        function checkWin() {
+            return winningCombinations.some(combination => {
+                return combination.every(index => cells[index].textContent === currentPlayer);
+            });
         }
-        animate();
+
+        // Restart the game
+        restartButton.addEventListener('click', initializeGame);
+
+        // Start the game
+        initializeGame();
     </script>
 </body>
 </html>
