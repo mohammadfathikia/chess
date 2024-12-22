@@ -1,2 +1,2 @@
 # chess
-برنامه نویسی بازی شطرنج به زبان HTML,CSS ,JavaScript درست کردم
+برنامه نویسی بازی دوز به زبان HTML,CSS ,JavaScript درست کردم
